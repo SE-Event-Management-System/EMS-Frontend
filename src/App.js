@@ -3,6 +3,7 @@ import {
   BrowserRouter,
   Routes,
   Route,
+  HashRouter
 } from "react-router-dom";
 import SignupPage from './pages/Signup';
 import LoginPage from './pages/Login';
