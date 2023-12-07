@@ -23,6 +23,16 @@ const loginFields=[
 
 const signupFields=[
     {
+        labelText:"Organizer Name",
+        labelFor:"organizerName",
+        id:"organizerName",
+        name:"organizerName",
+        type:"text",
+        autoComplete:"organizerName",
+        isRequired:true,
+        placeholder:"Organizer Name"   
+    },
+    {
         labelText:"First Name",
         labelFor:"firstName",
         id:"firstName",

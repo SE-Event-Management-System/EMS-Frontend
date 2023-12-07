@@ -20,7 +20,7 @@ export default function Login(){
 
     const {isLoggedIn, user } = useAuth();
     if(isLoggedIn){
-        navigate('/dashboard');
+        navigate('/');
         return;
     }
 

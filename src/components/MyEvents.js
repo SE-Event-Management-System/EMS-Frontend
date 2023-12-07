@@ -10,31 +10,30 @@ import { ImClock } from "react-icons/im";
 import { FiUnlock } from "react-icons/fi";
 import { CiBookmarkPlus, CiBookmarkCheck } from "react-icons/ci";
 import { MdDone } from "react-icons/md";
+import axios from 'axios';
 import Navbar from './NavBar';
 
 
-
-
-const Dashboard = () => {
+const MyEvents = () => {
     const navigate = useNavigate();
     const isVerified = JSON.parse(localStorage.getItem('isVerified'));
 
     const [searchQuery, setSearchQuery] = useState('');
     const [events, setEvents] = useState(null);
     const {isLoggedIn, decodedToken} = useAuth();
-    // const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
+    const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
 
-    // const toggleBookmark = (e, eventId) => {
-    //   e.preventDefault();
-    //   e.stopPropagation();
-    //   setBookmarkedEvents((prev) => {
-    //     if (prev.includes(eventId)) {
-    //       return prev.filter((id) => id !== eventId);
-    //     } else {
-    //       return [...prev, eventId];
-    //     }
-    //   });
-    // };
+    const toggleBookmark = (e, eventId) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setBookmarkedEvents((prev) => {
+        if (prev.includes(eventId)) {
+          return prev.filter((id) => id !== eventId);
+        } else {
+          return [...prev, eventId];
+        }
+      });
+    };
 
 
     const getDateString = (dateTimeString) => {
@@ -57,7 +56,13 @@ const Dashboard = () => {
 
     const filteredEvents = events
     ? events.filter((event) => {
-        const combinedFields = `${event.title} ${event.organizer} $${event.price} ${event.location} ${getDateString(event.datetime)} ${getEstTimeString(event.datetime)} ${event.tags.join(' ')}`.toLowerCase();
+        const cardText = isLoggedIn
+        ? !event.isWaitlist
+          ? 'Booked'
+          : 'Waitlisted'
+        : '';
+
+        const combinedFields = `${event.title} ${event.organizer} $${event.price} ${event.location} ${getDateString(event.datetime)} ${getEstTimeString(event.datetime)} ${event.tags.join(' ')} ${cardText}`.toLowerCase();
         return combinedFields.includes(searchQuery.toLowerCase());
       })
     : [];
@@ -67,9 +72,36 @@ const Dashboard = () => {
         // Function to fetch data from the API
         const fetchData = async () => {
             try {
-                const response = await fetch('http://ec2-3-134-104-92.us-east-2.compute.amazonaws.com:6003/api/v1/events');
-                const data = await response.json();
-                setEvents(data.data.events);
+
+                const myBookingsEndPoint = 'http://ec2-3-134-104-92.us-east-2.compute.amazonaws.com:6009/api/v1/utilityEvents';
+
+                const requestData = {
+                    requestId: String(Date.now()),
+                    userId: decodedToken.userId,
+                    type: "bookings"
+                    };
+                
+                const res = await axios.post(myBookingsEndPoint, requestData, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+
+                if (res.status === 200 && res.data.statusCode) {
+                    console.log("You have no booked events", res.data)
+                    navigate('/events');
+                    return;
+                }
+
+                if (res.status === 500){
+                    console.log("Some error occurred", res.data)
+                    navigate('/events');
+                    return;
+                }
+
+                setEvents(res.data.data.events)
+
+
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
@@ -87,10 +119,11 @@ const Dashboard = () => {
     }
 
     return (
-      <>
-      <Navbar/>
+        <>
+        <Navbar/>
       <div>
           <div className="w-11/12 md:w-3/4 lg:max-w-3xl m-auto mt-5">
+          <h1 class="text-4xl pb-5 text-center">My Events</h1>
             <div className="relative z-30 text-base text-black">
               <input
                 type="text"
@@ -103,18 +136,10 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="p-10 grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-5">
+            {/* Display events with a link to EventDetails component */}
             {filteredEvents &&
-              filteredEvents.filter(event => new Date(event.datetime) >= new Date()).map((event) => {
-                console.log(event.createdBy, decodedToken.userId, event.createdBy == decodedToken.userId)
-                const isUserBooked = event.bookedSeatsArray.some(
-                  (booking) => booking.user._id === decodedToken.userId && booking.isComplete);
-
-
-                const isUserWaitlisted = event.waitlistArray.some(
-                  (waitlist) => waitlist.user._id === decodedToken.userId && waitlist.isComplete);
-
-                // const isBookmarked = bookmarkedEvents.includes(event._id);   
-
+              filteredEvents.map((event) => {
+                const isUserBooked = !event.isWaitlist;                  
                 return (<Link key={event._id} to={`/event/${event._id}`} className="text-decoration-none">
                   <div className={`rounded overflow-hidden shadow-lg cursor-pointer`} style={{'min-height': '30rem'}}>
                     <img className="w-full h-48 object-cover" src={`data:image/jpeg;base64,${event.image}`} alt={event.title} />
@@ -122,24 +147,14 @@ const Dashboard = () => {
                       <div className="font-bold text-xl mb-2">{event.title}</div>
                       <div class="my-2 text-gray-600 flex justify-between">
                           <span className='text-sm'>${event.price}/person</span>
-                          {/* {isLoggedIn && ((!isUserBooked && !isUserWaitlisted) &&
-                          <a onClick={(e) => toggleBookmark(e, event._id)}>
-                            <span className={`text-3xl mr-0 z-10 ${!isBookmarked ? 'text-indigo-600' : 'text-green-700'} shadow-lg`} id={event._id}>
-                              {isBookmarked ? <CiBookmarkCheck /> : <CiBookmarkPlus />}
-                            </span>
-                          </a>
-                          )} */}
-                            {event.createdBy === decodedToken.userId && <span class="bg-pink-100 text-pink-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-pink-900 dark:text-pink-300">Organizer</span>}
                       </div>
                       <div>
                         {isLoggedIn && (isUserBooked 
-                            &&
-                              <span class="bg-green-700 text-green-300 text-xs font-medium me-2 px-2.5 py-0.5 my-2 rounded dark:bg-green-700 dark:text-green-300">Booked</span>)
-                        }
-                        {isLoggedIn && (isUserWaitlisted
-                              &&
-                              <span class="bg-yellow-700 text-yellow-300 text-xs font-medium me-2 px-2.5 py-0.5 my-2 rounded dark:bg-yellow-700 dark:text-yellow-300">Waitlisted</span>)
-                          }
+                            ?
+                              <span class="bg-green-700 text-green-300 text-xs font-medium me-2 px-2.5 py-0.5 my-2 rounded dark:bg-green-700 dark:text-green-300">Booked</span>
+                            :
+                              <span class="bg-yellow-700 text-yellow-300 text-xs font-medium me-2 px-2.5 py-0.5 my-2 rounded dark:bg-yellow-700 dark:text-yellow-300">Waitlisted</span>
+                          )}
                       </div>
                       <div className="grid grid-cols-2 mt-2 gap-4">
                           <div>
@@ -170,4 +185,4 @@ const Dashboard = () => {
       );
 };
 
-export default Dashboard;
+export default MyEvents;

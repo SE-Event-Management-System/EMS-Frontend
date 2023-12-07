@@ -26,6 +26,7 @@ export default function Signup(){
   const handleChange=(e)=>setSignupState({...signupState,[e.target.id]:e.target.value});
 
   const handleSubmit = (e) => {
+    console.log("Selected Role:", signupState); // Check the console for the selected role
     e.preventDefault();
     if (signupState.password !== signupState.confirmPassword) {
       setAlert('Passwords do not match');
@@ -40,13 +41,14 @@ export default function Signup(){
   const createAccount = (data) => {
     // Define the API endpoint for your signup request
     const endpoint = 'https://idjexfzucg.execute-api.us-east-2.amazonaws.com/api/v1/signup'; // Replace with your actual endpoint
-    
     const postData = {
       requestId: String(Date.now()),
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.emailAddress,
-      password: data.password
+      password: data.password,
+      role: data.role,
+      organizerName: data.organizerName
     }
 
     const headers = {
@@ -76,8 +78,29 @@ export default function Signup(){
               <p className="text-red-600 text-center">{alert}</p>
             )}
           <div className="">
+            <div className='my-5'>
+              <label htmlFor="role"></label>
+              <select name="role"
+                      onChange={handleChange} 
+                      required 
+                      className='w-full h-full rounded-md text-md relative block w-full px-2 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm' 
+                      id="role">
+                <option className='text-gray-900 placeholder-gray-500 text-md' value="">Role</option>
+                <option className='text-gray-900 placeholder-gray-500 text-md' value="user">User</option>
+                <option className='text-gray-900 placeholder-gray-500 text-md' value="organizer">Organizer</option>
+              </select>
+            </div>
+
+
             {
-            fields.map((field) => (
+            fields.filter(field => {
+              if (signupState.role != 'organizer' && field.id != 'organizerName'){
+                return true
+              }
+              else if (signupState.role == 'organizer'){
+                return true
+              }
+            }).map((field) => (
               <Input
                 key={field.id}
                 handleChange={handleChange}

@@ -3,13 +3,15 @@ import useAuth from '../helpers/useAuth';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 
-const Navbar = () => {
+const Navbar = ({userProfilePic}) => {
   const [showNav, setShowNav] = useState(false);
   const [isCrossButton, setIsCrossButton] = useState(false);
   const { isLoggedIn, decodedToken } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [userProfile, setUserProfile] = useState(userProfilePic);
   const navigate = useNavigate();
   const location = useLocation();
+  const userPicDefault = localStorage.getItem('userProfile')
 
   const toggleNav = () => {
     setShowNav(!showNav);
@@ -24,6 +26,15 @@ const Navbar = () => {
     localStorage.clear();
     navigate('/')
   };
+
+  useEffect(() => {
+    console.log({userProfilePic})
+    if (userProfilePic !== undefined) {
+      setUserProfile(userProfilePic);
+    }
+
+  }, [userProfilePic]);
+
 
   useEffect(() => {
     const isScreenLarge = () => {
@@ -73,22 +84,27 @@ const Navbar = () => {
           </div>
           {isLoggedIn ? (
             <div className="relative">
-              <ul className='flex justify-around space-x-4'>
-                {(location.pathname != '/events') && (<li className='text-lg'><a href="/events" className="text-purple-600 hover:text-purple-500">Events</a></li>)}
-                <li className='text-lg'><a href="/reservations" className="text-purple-600 hover:text-purple-500">Reservations</a></li>
+              <ul className='flex justify-around space-x-4 z-10'>
+                {decodedToken.isAdmin && (location.pathname != '/createEvent') && (<li className='text-lg'><a href="/createEvent" className="text-purple-600 hover:text-purple-500" style={{'paddingTop': '0.2rem'}}>Create Event</a></li>)}
+                {(location.pathname != '/events') && (<li className='text-lg'><a href="/events" className="text-purple-600 hover:text-purple-500" style={{'paddingTop': '0.2rem'}}>Events</a></li>)}
+                {(location.pathname != '/myEvents') && (<li className='text-lg'><a href="/myEvents" className="text-purple-600 hover:text-purple-500" style={{'paddingTop': '0.2rem'}}>My Events</a></li>)}
+                {(location.pathname != '/myBookings') && (<li className='text-lg'><a href="/myBookings" className="text-purple-600 hover:text-purple-500" style={{'paddingTop': '0.2rem'}}>My Bookings</a></li>)}
                 <li onClick={toggleDropdown} className="cursor-pointer">
-                <a className="text-purple-600 hover:text-purple-500">{decodedToken.user}</a>
+                <div className="flex -space-x-2 overflow-hidden">
+                  <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src={`data:image/jpeg;base64,${userProfile || userPicDefault}`} alt=""/>
+                </div>
+                {/* <a className="text-purple-600 hover:text-purple-500">{decodedToken.user}</a> */}
                 </li>
                 </ul>
               {showDropdown && (
-                <div className="absolute top-10 right-0 bg-white border shadow-md rounded-md p-2" style={{ width: '6.5rem' }}>
-                  <div className="w-full text-center text-purple-600 hover:text-purple-500 cursor-pointer">
+                <div className="absolute top-10 right-0 bg-white border shadow-md rounded-md p-2 z-10" style={{ width: '6.5rem' }}>
+                  <div className="w-full text-purple-600 hover:text-purple-500 cursor-pointer z-10">
                     <FontAwesomeIcon icon="fa-regular fa-user" />
                     <Link to="/userProfile">
-                      Profile
+                      My Profile
                     </Link>
                     </div>
-                  <div className="w-full text-center text-purple-600 hover:text-purple-500 cursor-pointer" onClick={logout}>
+                  <div className="w-full text-purple-600 hover:text-purple-500 cursor-pointer" onClick={logout}>
                     Logout
                   </div>
                 </div>
@@ -97,11 +113,9 @@ const Navbar = () => {
           ) : (
             <div className={`${showNav ? 'w-full lg:w-auto space-x-4 lg:space-x-0 fixed top-0 left-0 h-screen bg-white z-50' : 'hidden lg:flex'}`}>
               <ul className={`${showNav ? 'flex h-screen justify-center items-center flex-col' : 'flex justify-around space-x-4'}`}>
-                <li className='text-lg'><a href="/events" className="text-purple-600 hover:text-purple-500">Events</a></li>
-                <li className='text-lg'><a href="/reservations" className="text-purple-600 hover:text-purple-500">Reservations</a></li>
-                <li className='text-lg'><a href="/login" className="text-purple-600 hover:text-purple-500">Login</a></li>
-                <li className='text-lg'><a href="/signup" className="text-purple-600 hover:text-purple-500">Sign up</a></li>
-                {/* <li className='text-lg'><a href="/contact" className="text-purple-600 hover:text-purple-500">Contact</a></li> */}
+                <li className='text-lg'><a href="/events" className="text-purple-600 hover:text-purple-500 pr-5" style={{'paddingTop': '0.2rem'}}>Events</a></li>
+                <li className='text-lg'><a href="/login" className="text-purple-600 hover:text-purple-500 pr-5" style={{'paddingTop': '0.2rem'}}>Login</a></li>
+                <li className='text-lg'><a href="/signup" className="text-purple-600 hover:text-purple-500 pr-5" style={{'paddingTop': '0.2rem'}}>Sign up</a></li>
               </ul>
             </div>
           )}

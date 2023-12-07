@@ -23,7 +23,7 @@ const OTPVerification = () => {
   useEffect(() => {
     const isVerified = JSON.parse(localStorage.getItem('isVerified'));
     if (isVerified) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [navigate]);
 
@@ -150,7 +150,7 @@ const OTPVerification = () => {
         if (!res.data.statusCode) {
             localStorage.removeItem('otpRequestId');
             localStorage.setItem('isVerified', 'true');
-            navigate('/dashboard');
+            navigate('/');
         } else {
             setVerificationResult({error: true, type: 'val', message: res.data.info.message});
         }
