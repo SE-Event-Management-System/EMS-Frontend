@@ -85,7 +85,7 @@ const CreateEvent = () => {
     return (
         <>
         <Navbar/>
-    (<div className='container-fluid p-4 m-4'>
+    <div className='container-fluid p-4 m-4'>
         <form onSubmit={handleSubmit}>
             <div class="space-y-12">
                 <div class="border-b border-gray-900/10 pb-12">
@@ -252,7 +252,6 @@ const CreateEvent = () => {
             </div>
         </form>
     </div>
-    )
     </>
   );
 };
