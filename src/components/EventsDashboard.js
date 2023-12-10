@@ -67,7 +67,7 @@ const Dashboard = () => {
         // Function to fetch data from the API
         const fetchData = async () => {
             try {
-                const response = await fetch('http://ec2-3-134-104-92.us-east-2.compute.amazonaws.com:6003/api/v1/events');
+                const response = await fetch('http://ec2-18-219-123-198.us-east-2.compute.amazonaws.com:6003/api/v1/events');
                 const data = await response.json();
                 setEvents(data.data.events);
             } catch (error) {
@@ -122,13 +122,6 @@ const Dashboard = () => {
                       <div className="font-bold text-xl mb-2">{event.title}</div>
                       <div class="my-2 text-gray-600 flex justify-between">
                           <span className='text-sm'>${event.price}/person</span>
-                          {/* {isLoggedIn && ((!isUserBooked && !isUserWaitlisted) &&
-                          <a onClick={(e) => toggleBookmark(e, event._id)}>
-                            <span className={`text-3xl mr-0 z-10 ${!isBookmarked ? 'text-indigo-600' : 'text-green-700'} shadow-lg`} id={event._id}>
-                              {isBookmarked ? <CiBookmarkCheck /> : <CiBookmarkPlus />}
-                            </span>
-                          </a>
-                          )} */}
                             {event.createdBy === decodedToken.userId && <span class="bg-pink-100 text-pink-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-pink-900 dark:text-pink-300">Organizer</span>}
                       </div>
                       <div>

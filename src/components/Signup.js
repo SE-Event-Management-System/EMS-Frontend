@@ -50,6 +50,7 @@ export default function Signup(){
       role: data.role,
       organizerName: data.organizerName
     }
+    console.log(postData)
 
     const headers = {
         'Access-Control-Allow-Origin': 'http://localhost:3000/',

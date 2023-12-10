@@ -16,6 +16,8 @@
     "google-maps-react-markers": "^2.0.7",
     "mapbox-gl": "^2.7.0",
     "react": "^18.0.0",
+    "react-chat-engine": "^1.11.28",
+    "react-chat-engine-pretty": "^0.1.8",
     "react-datepicker": "^4.24.0",
     "react-dom": "^18.0.0",
     "react-icons": "^4.12.0",
@@ -28,6 +30,7 @@
     "react-tag-input-component": "^2.0.2",
     "react-tailwindcss-datepicker": "^1.6.6",
     "react-time-picker": "^6.5.2",
+    "socket.io-client": "^4.7.2",
     "worker-loader": "^3.0.8"
   },
   "scripts": {

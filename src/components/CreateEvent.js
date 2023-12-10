@@ -15,6 +15,7 @@ const CreateEvent = () => {
     const [image, setImage] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selected, setSelected] = useState([]);
+    const [secretId, setSecretId] = useState(null);
 
 
     const handleImageChange = (e) => {
@@ -34,6 +35,46 @@ const CreateEvent = () => {
 
     async function handleSubmit(e){
         e.preventDefault();
+
+
+        const chatEndpoint = `https://out4tyvu01.execute-api.us-east-2.amazonaws.com/api/v1/chat/signup`;
+        const body = {
+            requestId: String(Date.now()),
+            username: decodedToken.user,
+            secret: decodedToken.userId
+        };
+        
+        
+        const resp = await axios.post(chatEndpoint, body, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        setSecretId(decodedToken.userId)
+
+
+
+        const createChatEndpoint = `https://evi9rg1459.execute-api.us-east-2.amazonaws.com/api/v1/chat/create`;
+        const reqbody = {
+            requestId: String(Date.now()),
+            title: formData.eventName,
+            username: decodedToken.user,
+            secret: decodedToken.userId
+        };
+        console.log({reqbody})
+        
+        
+        const response = await axios.post(createChatEndpoint, reqbody, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+
+        console.log(response)
+        
+
+
+
         selectedDate.setHours(formData.timeHour);
         selectedDate.setMinutes(formData.timeMin)
         selectedDate.setSeconds(0);
@@ -52,7 +93,9 @@ const CreateEvent = () => {
             maxWaitlist: formData.maxWaitlist,
             address: formData.address,
             tags: selected,
-            createdBy: decodedToken.userId
+            createdBy: decodedToken.userId,
+            chatId: response.data.id,
+            chatAccessKey: response.data.access_key,
             };
         
         console.log(requestData)
@@ -63,10 +106,10 @@ const CreateEvent = () => {
         })
 
         console.log(res)
-        if (res.status === 201 && !res.data.statusCode) {
-            navigate("/events")
-            return;
-        }
+        // if (res.status === 201 && !res.data.statusCode) {
+        //     navigate("/events")
+        //     return;
+        // }
     }
 
     const cancelHandle = (e) => {

@@ -73,7 +73,7 @@ const MyOrders = () => {
         const fetchData = async () => {
             try {
 
-                const myBookingsEndPoint = 'http://ec2-3-134-104-92.us-east-2.compute.amazonaws.com:6009/api/v1/utilityEvents';
+                const myBookingsEndPoint = 'http://ec2-18-219-123-198.us-east-2.compute.amazonaws.com:6009/api/v1/utilityEvents';
 
                 const requestData = {
                     requestId: String(Date.now()),

@@ -12,6 +12,9 @@ import { useNavigate } from 'react-router';
 import Navbar from './NavBar';
 import SimpleMap from './Map';
 import CommentSection from './Comment';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:6543');
 
 
 const EventDetails = () => {
@@ -25,15 +28,31 @@ const EventDetails = () => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [error, setError] = useState('')
   const [replyToId, setReplyToId] = useState('');
+  const [secretId, setSecretId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState('');
   const [commentText, setCommentText] = useState({
     textAreaValue: '',
   });
+
+  const chatboxRef = useRef(null);
 
   const handleTextAreaChange = (e) => {
     setCommentText({
       textAreaValue: e.target.value,
     });
   };
+
+  const scrollToBottom = () => {
+    if (chatboxRef.current) {
+      chatboxRef.current.scrollTop = chatboxRef.current.scrollHeight;
+    }
+  };
+
+  // useEffect to scroll to bottom whenever messages are updated
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSubmit = async (e, action, id) => {
     e.preventDefault();
@@ -58,6 +77,7 @@ const EventDetails = () => {
 
             console.log(res)
             if (res.status === 200 && res.data.statusCode) {
+
                 console.log("You have already booked this event", res.data)
                 navigate('/events');
                 return;
@@ -137,7 +157,7 @@ const EventDetails = () => {
         return;
       }
 
-    const pushCommentEndpoint = `https://zty8kz1jvl.execute-api.us-east-2.amazonaws.com/api/v1/comment`;
+        const pushCommentEndpoint = `https://zty8kz1jvl.execute-api.us-east-2.amazonaws.com/api/v1/comment`;
         const requestData = {
             requestId: String(Date.now()),
             eventId: eventId,
@@ -180,6 +200,28 @@ const EventDetails = () => {
         }).format(new Date(dateTimeString));
     }
 
+    const sendMessage = (messageInput) => {
+        setMessages((prevMessages) => [...prevMessages, {room: eventId, userId: decodedToken.userId, name: decodedToken.user, message: messageInput}]);
+        socket.emit("chat message", {room: eventId, userId: decodedToken.userId, name: decodedToken.user, message: messageInput})
+      }
+
+    useEffect(() => {
+        console.log("Inside ROom join")
+        socket.emit('joinRoom', eventId);
+        socket.on("previous_messages", (msg) => {
+            console.log("previous message", msg)
+            setMessages((prevMessages) => [...prevMessages, ...msg]);
+        })
+        socket.on('message', (msg) => {
+            console.log("receiving message", msg)
+            setMessages((prevMessages) => [...prevMessages, msg]);
+          });
+
+        return () => {
+            socket.off("message");
+          };
+    }, [])
+
   useEffect(() => {
     if (!isLoggedIn){
         navigate('/login');
@@ -188,7 +230,7 @@ const EventDetails = () => {
 
     const fetchEventDetails = async () => {
       try {
-        const response = await fetch(`http://ec2-3-134-104-92.us-east-2.compute.amazonaws.com:6006/api/v1/event/${eventId}`);
+        const response = await fetch(`http://ec2-18-219-123-198.us-east-2.compute.amazonaws.com:6006/api/v1/event/${eventId}`);
         const data = await response.json();
         if (!data.data){
             navigate('/events');
@@ -209,9 +251,17 @@ const EventDetails = () => {
         console.error('Error fetching event details:', error);
       }
     };
-
     fetchEventDetails();
   }, [eventId]);
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (messageInput.trim() !== '') {
+      sendMessage(messageInput);
+      setMessageInput('');  // Clear the input after sending the message
+    }
+  };
+
     
 
   return (
@@ -297,99 +347,12 @@ const EventDetails = () => {
                 placeholder="Write a comment..." required></textarea>
         </div>
         <button type="submit" onClick={handleCommentSubmit}
-            class="inline-flex items-center py-2.5 px-4 bg-indigo-600 text-xs font-semibold text-center text-white bg-primary-700 rounded-md focus:ring-4 focus:ring-primary-200 hover:bg-primary-800">
+            class="inline-flex items-center py-2.5 px-4 bg-indigo-600 text-xs font-semibold text-center text-white bg-primary-700 rounded-md focus:ring-4 focus:ring-primary-200 hover:bg-indigo-500">
             Post comment
         </button>
     </form>
     {error && <p className="text-red-500">{error}</p>}
     <CommentSection eventId={eventId} userId={decodedToken.userId} comments={event.comments} depth={0}/>
-    {/* {event.comments.map(comment => {
-    return (<article class="p-6 text-base bg-white rounded-lg">
-        <footer class="flex justify-between items-center mb-2">
-            <div class="flex items-center">
-                <p class="inline-flex items-center mr-3 text-sm text-gray-900 font-semibold"><img
-                        class="mr-2 w-6 h-6 rounded-full"
-                        src={`data:image/jpeg;base64,${comment.author.id.userPic}`}
-                        />{`${comment.author.id.firstName} ${comment.author.id.lastName}`}</p>
-                <p class="text-sm text-gray-600"><time pubdate datetime={getDateString(comment.createdAt)}
-                        title={getDateString(comment.createdAt)}>{getEstTimeString(comment.createdAt)} EST, {getDateString(comment.createdAt)}</time></p>
-            </div>
-        </footer>
-        <p class="text-gray-500">{comment.text}</p>
-        {showReplyForm ? (
-          <form className="my-6">
-            <div className="py-2 px-4 mb-4 bg-white rounded-lg rounded-t-lg border border-gray-200">
-              <label htmlFor="comment" className="sr-only">Your comment</label>
-              <textarea
-                id="comment"
-                rows="6"
-                onChange={handleTextAreaChange}
-                value={commentText.textAreaValue}
-                className="px-0 w-full text-sm text-gray-900 border-0 focus:ring-0 focus:outline-none placeholder-gray-400"
-                placeholder="Write a comment..."
-                required
-              ></textarea>
-            </div>
-            {error && <p className="text-red-500">{error}</p>}
-            <div className="flex space-x-4">
-              <button
-                type="submit"
-                onClick={handleCommentSubmit}
-                className="inline-flex items-center py-2.5 px-4 bg-indigo-600 text-xs font-semibold text-center text-white bg-primary-700 rounded-md focus:ring-4 focus:ring-primary-200 hover:bg-primary-800"
-              >
-                Post comment
-              </button>
-              <button
-                type="button"
-                onClick={closeReplyFormHandler}
-                className="inline-flex items-center py-2.5 px-4 text-xs font-semibold text-center text-gray-700 bg-gray-200 rounded-md focus:ring-4 focus:ring-gray-300 hover:bg-gray-300"
-              >
-                Close
-              </button>
-            </div>
-          </form>
-        ) : (
-            <div class="flex items-center mt-4 space-x-4">
-            <button type="button"
-                onClick={() => showReplyFormHandler(comment._id)}
-                class="flex items-center text-sm text-gray-500 hover:underline font-medium">
-                <svg class="mr-1.5 w-3.5 h-3.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5h5M5 8h2m6-3h2m-5 3h6m2-7H2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3v5l5-5h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1Z"/>
-                </svg>
-                Reply
-            </button>
-        </div> 
-        )}
-        {comment.replies.map(reply => {
-            return (
-                <>
-                <article class="p-6 mb-3 ml-6 lg:ml-12 text-base bg-white rounded-lg">
-                    <footer class="flex justify-between items-center mb-2">
-                        <div class="flex items-center">
-                            <p class="inline-flex items-center mr-3 text-sm text-gray-900 font-semibold"><img
-                                    class="mr-2 w-6 h-6 rounded-full"
-                                    src={`data:image/jpeg;base64,${reply.author.id.userPic}`}
-                                    />{`${comment.author.id.firstName} ${comment.author.id.lastName}`}</p>
-                            <p class="text-sm text-gray-600"><time pubdate datetime={getDateString(comment.createdAt)}
-                        title={getDateString(comment.createdAt)}>{getEstTimeString(comment.createdAt)} EST, {getDateString(comment.createdAt)}</time></p>
-                        </div>
-                    </footer>
-                    <p class="text-gray-500">{reply.text}</p>
-                    <div class="flex items-center mt-4 space-x-4">
-                        <button type="button"
-                            class="flex items-center text-sm text-gray-500 hover:underline font-medium">
-                            <svg class="mr-1.5 w-3.5 h-3.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5h5M5 8h2m6-3h2m-5 3h6m2-7H2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3v5l5-5h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1Z"/>
-                            </svg>                
-                            Reply
-                        </button>
-                    </div>
-                </article>
-                </>
-            )
-        }) }
-    </article>)
-    })} */}
   </div>
 </section>
                             </div>
@@ -401,7 +364,6 @@ const EventDetails = () => {
                                 <div>
                                     <SimpleMap userLatitude={+localStorage.getItem('lat')} userLongitude={+localStorage.getItem('long')} latitude={event.lat} longitude={event.long}/>
                                 </div>
-                            
                         </div>
                         <div>
                             <div className='pt-3 mt-10'>
@@ -444,7 +406,62 @@ const EventDetails = () => {
                                 </div>
                             </div>
                         </div>
+
+
+
+                        <div class="bottom-[calc(4rem+1.5rem)] mt-10 right-0 mr-4 bg-white p-6 w-full rounded-md shadow-md h-[634px]">
+
+                            <div class="flex flex-col space-y-1.5 pb-6">
+                                <h2 class="font-semibold text-lg tracking-tight">Event Chat</h2>
+                            </div>
+
+                            <div class="pr-4 h-[450px] flex-column" style={{"max-width": "100%", "overflow-y": "auto"}} ref={chatboxRef}>
+                            
+                            {messages.length ? messages.map((msgObject, index) => (
+                                msgObject.userId !== decodedToken.userId ? 
+                                <div key={index} class="ml-2 py-1 px-4 bg-gray-400 break-words rounded-br-3xl rounded-tr-3xl rounded-tl-xl text-white my-3">
+                                    <p class="leading-relaxed"><span class="block font-bold text-gray-700">{msgObject.name} </span>{msgObject.message}
+                                    </p>
+                                </div>
+                                :
+                                <div key={index} class="mr-2 py-1 break-words px-4 bg-indigo-300 rounded-bl-3xl rounded-tl-3xl rounded-tr-xl text-white my-3" style={{textAlign: "right", flexDirection: "column-reverse", width: "100%"}}>
+                                    <p class="leading-relaxed"><span class="block font-bold text-gray-700">You </span>{msgObject.message}</p>
+                                </div>
+                                
+                            ))
+                            :
+                            "No messages Yet!"
+                            }
+                            </div>
+                            <div class="flex items-center pt-0">
+                            <form class="flex items-center justify-center w-full space-x-2">
+                                <input
+                                class="flex h-10 w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm placeholder-[#6b7280] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] text-[#030712] focus-visible:ring-offset-2"
+                                type="text" placeholder="Type your message" value={messageInput} onChange={(e) => setMessageInput(e.target.value)}/>
+                                <button onClick={(e) => handleSendMessage(e, messageInput)}
+                                class="inline-flex items-center justify-center rounded-md text-white text-sm font-semibold disabled:pointer-events-none hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 bg-indigo-600 focus-visible:outline-indigo-600 h-10 px-4 py-2 text-">
+                                Send</button>
+                            </form>
+                            </div>
+
+                        </div>
                     </div>
+                    
+
+                    {/* <div>
+                        <ul>
+                            {messages.map((msg, index) => (
+                            <li key={index}>{msg}</li>
+                            ))}
+                        </ul>
+                        <input
+                            type="text"
+                            placeholder="Type your message..."
+                            onChange={(e) => setMessageInput(e.target.value)}
+                        />
+                        <button onClick={() => handleSendMessage(messageInput)}>Send</button>
+                    </div> */}
+
 
                         {/* <div class="py-10 lg:col-span-2 lg:col-start-1 lg:pr-8 lg:pt-6">
                             <div className='flex-column'>
